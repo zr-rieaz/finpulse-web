@@ -129,6 +129,41 @@ class FinViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
         }
+
+        // Auto-seed initial notes if database is empty
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(300)
+            val currentNotes = repository.allNotes.firstOrNull() ?: emptyList()
+            if (currentNotes.isEmpty()) {
+                val initialNotes = listOf(
+                    Note(
+                        id = "note-default-1",
+                        title = "মাসিক সঞ্চয় লক্ষ্য (Savings Plan)",
+                        content = "প্রতি মাসের শুরুতে মোট আয়ের অন্তত ২০% সঞ্চয় ফান্ডে জমা রাখতে হবে। অতিরিক্ত কেনাকাটা নিয়ন্ত্রণ করা জরুরি।",
+                        category = "Finance",
+                        date = getTodayString(),
+                        timestamp = System.currentTimeMillis()
+                    ),
+                    Note(
+                        id = "note-default-2",
+                        title = "বাজার তালিকা ও প্রয়োজনীয় খরচ",
+                        content = "মুদিবাজার, চাল-ডাল ও নিত্যপ্রয়োজনীয় জিনিসপত্রের খরচ বাজেট সীমার মধ্যে রাখা।",
+                        category = "Shopping",
+                        date = getTodayString(),
+                        timestamp = System.currentTimeMillis() - 60000
+                    ),
+                    Note(
+                        id = "note-default-3",
+                        title = "জরুরি ফান্ড ও ডিপিএস",
+                        content = "মেডিকেল ইমার্জেন্সি ও ভবিষ্যতের জন্য আলাদা সেভিংস একাউন্টে কিস্তি জমা রাখা।",
+                        category = "Budget",
+                        date = getTodayString(),
+                        timestamp = System.currentTimeMillis() - 120000
+                    )
+                )
+                initialNotes.forEach { repository.saveNote(it) }
+            }
+        }
     }
 
     // Moshi Instance for Backup / Restore

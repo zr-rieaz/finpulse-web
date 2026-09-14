@@ -90,6 +90,7 @@ fun AppContent(viewModel: FinViewModel) {
         var selectedTab by remember { mutableStateOf(0) } // 0..4
         var activeEditTransaction by remember { mutableStateOf<Transaction?>(null) }
         var isShowAddEditModal by remember { mutableStateOf(false) }
+        var isShowAddNoteModal by remember { mutableStateOf(false) }
 
         Scaffold(
             topBar = {
@@ -191,22 +192,26 @@ fun AppContent(viewModel: FinViewModel) {
                 }
             },
             floatingActionButton = {
-                // Show floating adding trigger button on Home (0), Reports (1), or Transactions (2)
-                if (selectedTab in 0..2) {
+                // Show floating adding trigger button on Home (0), Reports (1), Transactions (2), or Notepad (3)
+                if (selectedTab in 0..3) {
                     FloatingActionButton(
                         onClick = {
-                            activeEditTransaction = null
-                            isShowAddEditModal = true
+                            if (selectedTab == 3) {
+                                isShowAddNoteModal = true
+                            } else {
+                                activeEditTransaction = null
+                                isShowAddEditModal = true
+                            }
                         },
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier
                             .padding(bottom = 8.dp)
-                            .testTag("add_transaction_fab")
+                            .testTag(if (selectedTab == 3) "add_note_fab" else "add_transaction_fab")
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
-                            contentDescription = "Add Transaction",
+                            contentDescription = if (selectedTab == 3) "Add Note" else "Add Transaction",
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -247,7 +252,9 @@ fun AppContent(viewModel: FinViewModel) {
                     )
                     3 -> NotepadScreen(
                         viewModel = viewModel,
-                        profile = profile
+                        profile = profile,
+                        openAddDialogTrigger = isShowAddNoteModal,
+                        onAddDialogConsumed = { isShowAddNoteModal = false }
                     )
                     4 -> SettingsScreen(
                         viewModel = viewModel,

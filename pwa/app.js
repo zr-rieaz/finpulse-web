@@ -75,7 +75,27 @@
       navReports: "Reports",
       navLogs: "Transactions",
       navBudgets: "Monthly",
+      navNotepad: "Notepad",
       navSettings: "Settings",
+      notepadTitle: "Clean Notepad",
+      notepadCount: "notes saved",
+      addNoteBtn: "Add Note",
+      searchNotesPlaceholder: "Search notes...",
+      noNotesFound: "No notes found",
+      emptyNotesHelp: "Keep track of your financial plans, thoughts, or shopping lists.",
+      writeFirstNote: "Write First Note",
+      modalAddNoteTitle: "Add New Note",
+      modalEditNoteTitle: "Edit Note",
+      noteCategoryLabel: "Category Tag",
+      noteTitleLabel: "Title",
+      noteTitlePlaceholder: "Note title...",
+      noteContentLabel: "Content",
+      noteContentPlaceholder: "Write your thoughts or financial plans here...",
+      saveNoteBtn: "Save Note",
+      updateNoteBtn: "Update Note",
+      noteSaved: "Note saved successfully!",
+      noteDeleted: "Note deleted successfully!",
+      deleteNoteConfirm: "Are you sure you want to delete this note?",
       categories: {
         Food: "Food & Dining",
         Rent: "House Rent",
@@ -155,7 +175,27 @@
       navReports: "রিপোর্ট",
       navLogs: "লেনদেন",
       navBudgets: "মাসিক",
+      navNotepad: "নোটপ্যাড",
       navSettings: "সেটিংস",
+      notepadTitle: "ক্লিন নোটপ্যাড",
+      notepadCount: "টি সংরক্ষিত নোট",
+      addNoteBtn: "নতুন নোট",
+      searchNotesPlaceholder: "নোট খুঁজুন...",
+      noNotesFound: "কোনো নোট পাওয়া যায়নি",
+      emptyNotesHelp: "আপনার আর্থিক পরিকল্পনা, বাজার তালিকা বা প্রয়োজনীয় তথ্য লিখে রাখতে নিচের বাটনে চাপুন।",
+      writeFirstNote: "নতুন নোট লিখুন",
+      modalAddNoteTitle: "নতুন নোট লিখুন",
+      modalEditNoteTitle: "নোট সম্পাদনা করুন",
+      noteCategoryLabel: "ক্যাটাগরি ট্যাগ",
+      noteTitleLabel: "শিরোনাম",
+      noteTitlePlaceholder: "নোটের শিরোনাম লিখুন...",
+      noteContentLabel: "বিবরণ",
+      noteContentPlaceholder: "এখানে বিস্তারিত নোট বা তথ্য লিখুন...",
+      saveNoteBtn: "সংরক্ষণ করুন",
+      updateNoteBtn: "আপডেট করুন",
+      noteSaved: "নোট সফলভাবে সংরক্ষণ হয়েছে!",
+      noteDeleted: "নোট মুছে ফেলা হয়েছে",
+      deleteNoteConfirm: "আপনি কি নিশ্চিত যে এই নোটটি মুছে ফেলতে চান?",
       categories: {
         Food: "খাবার ও রেস্তোরাঁ",
         Rent: "বাড়িভাড়া",
@@ -248,8 +288,36 @@
     PROFILE: 'finpulse_profile_v2',
     THEME: 'finpulse_theme_v2',
     SELECTED_MONTH: 'finpulse_sel_month_v2',
-    PWA_PROMPT_DISMISSED: 'finpulse_pwa_dismissed'
+    PWA_PROMPT_DISMISSED: 'finpulse_pwa_dismissed',
+    NOTES: 'finpulse_notes_v2'
   };
+
+  const DEFAULT_NOTES = [
+    {
+      id: "note-1",
+      title: "মাসিক সঞ্চয় লক্ষ্য (Monthly Savings)",
+      content: "প্রতি মাসের শুরুতে মোট আয়ের অন্তত ২০% সঞ্চয় ফান্ডে জমা রাখা। অতিরিক্ত কেনাকাটা নিয়ন্ত্রণ করা জরুরি।",
+      category: "Finance",
+      date: getFormattedDate(0),
+      timestamp: Date.now()
+    },
+    {
+      id: "note-2",
+      title: "বাজার তালিকা ও নিত্যপ্রয়োজনীয় দ্রব্যাদি",
+      content: "চাল, ডাল, তেল, চিনি, মসলা, তাজা শাকসবজি ও ফলমূল কেনার সময় বাজেট সীমা অনুসরণ করা।",
+      category: "Shopping",
+      date: getFormattedDate(1),
+      timestamp: Date.now() - 86400000
+    },
+    {
+      id: "note-3",
+      title: "জরুরি ফান্ড ও ডিপিএস কিস্তি",
+      content: "মেডিকেল ইমার্জেন্সি ও ভবিষ্যতের জন্য আলাদা সেভিংস একাউন্টে কিস্তি নিয়মিত জমা রাখা।",
+      category: "Budget",
+      date: getFormattedDate(2),
+      timestamp: Date.now() - 172800000
+    }
+  ];
 
   const Store = {
     getTransactions: () => {
@@ -274,6 +342,21 @@
     saveBudgets: (b) => {
       localStorage.setItem(STORAGE_KEYS.BUDGETS, JSON.stringify(b));
     },
+    getNotes: () => {
+      try {
+        const data = localStorage.getItem(STORAGE_KEYS.NOTES);
+        if (data) {
+          const parsed = JSON.parse(data);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+        return DEFAULT_NOTES;
+      } catch (e) {
+        return DEFAULT_NOTES;
+      }
+    },
+    saveNotes: (notes) => {
+      localStorage.setItem(STORAGE_KEYS.NOTES, JSON.stringify(notes));
+    },
     getProfile: () => {
       try {
         const data = localStorage.getItem(STORAGE_KEYS.PROFILE);
@@ -295,6 +378,7 @@
   let state = {
     transactions: Store.getTransactions(),
     budgets: Store.getBudgets(),
+    notes: Store.getNotes(),
     profile: Store.getProfile(),
     theme: Store.getTheme(),
     selectedMonth: Store.getSelectedMonth(),
@@ -303,7 +387,11 @@
     txFilter: 'all',
     txSearchQuery: '',
     editingTxId: null,
-    txModalType: 'expense'
+    txModalType: 'expense',
+    notesCategoryFilter: 'All',
+    notesSearchQuery: '',
+    editingNoteId: null,
+    selectedNoteModalCat: 'Finance'
   };
 
   // --- 5. DOM ELEMENTS ---
@@ -320,7 +408,7 @@
       dashboard: document.getElementById('screen-dashboard'),
       reports: document.getElementById('screen-reports'),
       transactions: document.getElementById('screen-transactions'),
-      budgets: document.getElementById('screen-budgets'),
+      notepad: document.getElementById('screen-notepad'),
       settings: document.getElementById('screen-settings')
     },
     
@@ -355,6 +443,26 @@
 
     // Budgets fields
     budgetsContainer: document.getElementById('budgets-container'),
+
+    // Notepad fields
+    btnOpenAddNote: document.getElementById('btn-open-add-note'),
+    lblNotepadTitle: document.getElementById('lbl-notepad-title'),
+    lblNotepadCount: document.getElementById('lbl-notepad-count'),
+    lblAddNoteBtn: document.getElementById('lbl-add-note-btn'),
+    inputSearchNotes: document.getElementById('input-search-notes'),
+    noteCatChips: document.querySelectorAll('#screen-notepad .note-cat-chip[data-cat]'),
+    notesContainer: document.getElementById('notes-container'),
+    modalNote: document.getElementById('modal-note'),
+    btnCloseNoteModal: document.getElementById('btn-close-note-modal'),
+    lblModalNoteTitle: document.getElementById('lbl-modal-note-title'),
+    noteModalCatChips: document.querySelectorAll('#modal-note .note-cat-chip[data-form-cat]'),
+    noteInputTitle: document.getElementById('note-input-title'),
+    noteInputContent: document.getElementById('note-input-content'),
+    btnSaveNote: document.getElementById('btn-save-note'),
+    lblBtnSaveNote: document.getElementById('lbl-btn-save-note'),
+    lblNoteFormCat: document.getElementById('lbl-note-form-cat'),
+    lblNoteFormTitle: document.getElementById('lbl-note-form-title'),
+    lblNoteFormContent: document.getElementById('lbl-note-form-content'),
 
     // Settings fields
     inputUserName: document.getElementById('input-user-name'),
@@ -504,7 +612,15 @@
       'nav-reports': dict.navReports,
       'nav-logs': dict.navLogs,
       'nav-budgets': dict.navBudgets,
-      'nav-settings': dict.navSettings
+      'nav-notepad': dict.navNotepad,
+      'nav-settings': dict.navSettings,
+      'lbl-notepad-title': dict.notepadTitle,
+      'lbl-add-note-btn': dict.addNoteBtn,
+      'lbl-modal-note-title': dict.modalAddNoteTitle,
+      'lbl-note-form-cat': dict.noteCategoryLabel,
+      'lbl-note-form-title': dict.noteTitleLabel,
+      'lbl-note-form-content': dict.noteContentLabel,
+      'lbl-btn-save-note': dict.saveNoteBtn
     };
 
     for (const [id, text] of Object.entries(labelMapping)) {
@@ -515,6 +631,9 @@
     if (el.inputSearchTx) el.inputSearchTx.placeholder = dict.searchPlaceholder;
     if (el.txInputTitle) el.txInputTitle.placeholder = dict.txTitlePlaceholder;
     if (el.txInputMerchant) el.txInputMerchant.placeholder = dict.txMerchantPlaceholder;
+    if (el.inputSearchNotes) el.inputSearchNotes.placeholder = dict.searchNotesPlaceholder;
+    if (el.noteInputTitle) el.noteInputTitle.placeholder = dict.noteTitlePlaceholder;
+    if (el.noteInputContent) el.noteInputContent.placeholder = dict.noteContentPlaceholder;
   }
 
   // --- 9. MONTH SLIDER ---
@@ -607,6 +726,7 @@
     renderReports();
     renderTransactionsList();
     renderBudgets();
+    renderNotepad();
     syncSettingsFields();
   }
 
@@ -920,6 +1040,204 @@
     });
   }
 
+  // --- 11B. NOTEPAD HANDLERS ---
+  function renderNotepad() {
+    if (!el.notesContainer) return;
+
+    const q = (state.notesSearchQuery || '').toLowerCase().trim();
+    const catFilter = state.notesCategoryFilter || 'All';
+
+    const filtered = (state.notes || []).filter(note => {
+      const matchCat = catFilter === 'All' || (note.category || '').toLowerCase() === catFilter.toLowerCase();
+      const matchSearch = !q || (note.title || '').toLowerCase().includes(q) || (note.content || '').toLowerCase().includes(q);
+      return matchCat && matchSearch;
+    });
+
+    if (el.lblNotepadCount) {
+      if (state.profile.language === 'bn') {
+        el.lblNotepadCount.textContent = `মোট ${(state.notes || []).length} ${t('notepadCount')}`;
+      } else {
+        el.lblNotepadCount.textContent = `${(state.notes || []).length} ${t('notepadCount')}`;
+      }
+    }
+
+    if (el.noteCatChips) {
+      el.noteCatChips.forEach(chip => {
+        const cat = chip.getAttribute('data-cat') || 'All';
+        chip.classList.toggle('active', cat.toLowerCase() === catFilter.toLowerCase());
+      });
+    }
+
+    if (filtered.length === 0) {
+      el.notesContainer.innerHTML = `
+        <div class="card" style="text-align: center; padding: 40px 20px; border: 2px dashed var(--border-subtle); background: var(--bg-card);">
+          <div style="font-size: 40px; margin-bottom: 12px;">📝</div>
+          <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 6px; color: var(--text-main);">
+            ${t('noNotesFound')}
+          </h3>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+            ${t('emptyNotesHelp')}
+          </p>
+          <button id="btn-empty-add-note" class="btn-primary" style="display: inline-flex; width: auto; padding: 10px 22px; margin: 0 auto; gap: 8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>${t('writeFirstNote')}</span>
+          </button>
+        </div>
+      `;
+      const btnEmpty = document.getElementById('btn-empty-add-note');
+      if (btnEmpty) {
+        btnEmpty.addEventListener('click', openAddNoteModal);
+      }
+      return;
+    }
+
+    el.notesContainer.innerHTML = filtered.map(note => {
+      const catKey = (note.category || 'notes').toLowerCase();
+      const catClass = `note-badge-${catKey}`;
+      return `
+        <div class="note-card" data-note-id="${note.id}">
+          <div class="note-header-row">
+            <span class="note-badge ${catClass}">${note.category || 'Notes'}</span>
+            <div class="note-actions-group">
+              <span class="note-date-text">${note.date || ''}</span>
+              <button class="btn-note-action btn-note-edit" data-edit-note="${note.id}" title="Edit Note">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              </button>
+              <button class="btn-note-action btn-note-delete" data-delete-note="${note.id}" title="Delete Note">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </button>
+            </div>
+          </div>
+          <div class="note-card-title">${escapeHtml(note.title || 'Untitled')}</div>
+          ${note.content ? `<div class="note-card-content">${escapeHtml(note.content)}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+
+    // Attach edit and delete events
+    el.notesContainer.querySelectorAll('[data-edit-note]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-edit-note');
+        openEditNoteModal(id);
+      });
+    });
+
+    el.notesContainer.querySelectorAll('[data-delete-note]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-delete-note');
+        if (confirm(t('deleteNoteConfirm'))) {
+          state.notes = state.notes.filter(n => n.id !== id);
+          Store.saveNotes(state.notes);
+          renderNotepad();
+          showToast(t('noteDeleted'));
+        }
+      });
+    });
+
+    el.notesContainer.querySelectorAll('.note-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const id = card.getAttribute('data-note-id');
+        openEditNoteModal(id);
+      });
+    });
+  }
+
+  function openAddNoteModal() {
+    state.editingNoteId = null;
+    state.selectedNoteModalCat = 'Finance';
+    if (el.lblModalNoteTitle) {
+      el.lblModalNoteTitle.textContent = t('modalAddNoteTitle');
+    }
+    if (el.lblBtnSaveNote) {
+      el.lblBtnSaveNote.textContent = t('saveNoteBtn');
+    }
+    if (el.noteInputTitle) el.noteInputTitle.value = '';
+    if (el.noteInputContent) el.noteInputContent.value = '';
+
+    updateNoteModalCatChips();
+    if (el.modalNote) el.modalNote.classList.add('active');
+    setTimeout(() => {
+      if (el.noteInputTitle) el.noteInputTitle.focus();
+    }, 150);
+  }
+
+  function openEditNoteModal(id) {
+    const note = (state.notes || []).find(n => n.id === id);
+    if (!note) return;
+
+    state.editingNoteId = id;
+    state.selectedNoteModalCat = note.category || 'Finance';
+    if (el.lblModalNoteTitle) {
+      el.lblModalNoteTitle.textContent = t('modalEditNoteTitle');
+    }
+    if (el.lblBtnSaveNote) {
+      el.lblBtnSaveNote.textContent = t('updateNoteBtn');
+    }
+    if (el.noteInputTitle) el.noteInputTitle.value = note.title || '';
+    if (el.noteInputContent) el.noteInputContent.value = note.content || '';
+
+    updateNoteModalCatChips();
+    if (el.modalNote) el.modalNote.classList.add('active');
+  }
+
+  function closeNoteModal() {
+    if (el.modalNote) el.modalNote.classList.remove('active');
+    state.editingNoteId = null;
+  }
+
+  function updateNoteModalCatChips() {
+    if (el.noteModalCatChips) {
+      el.noteModalCatChips.forEach(chip => {
+        const cat = chip.getAttribute('data-form-cat') || '';
+        chip.classList.toggle('active', cat.toLowerCase() === (state.selectedNoteModalCat || 'Finance').toLowerCase());
+      });
+    }
+  }
+
+  function handleSaveNote() {
+    const title = (el.noteInputTitle ? el.noteInputTitle.value : '').trim();
+    const content = (el.noteInputContent ? el.noteInputContent.value : '').trim();
+    const category = state.selectedNoteModalCat || 'Finance';
+
+    if (!title && !content) {
+      alert(state.profile.language === 'bn' ? 'অনুগ্রহ করে নোটের শিরোনাম বা বিবরণ লিখুন।' : 'Please enter a title or content for your note.');
+      return;
+    }
+
+    const today = getFormattedDate(0);
+
+    if (state.editingNoteId) {
+      const idx = state.notes.findIndex(n => n.id === state.editingNoteId);
+      if (idx !== -1) {
+        state.notes[idx] = {
+          ...state.notes[idx],
+          title: title || (state.profile.language === 'bn' ? 'শিরোনামহীন নোট' : 'Untitled Note'),
+          content: content,
+          category: category
+        };
+      }
+      showToast(t('noteSaved'));
+    } else {
+      const newNote = {
+        id: 'note-' + Date.now(),
+        title: title || (state.profile.language === 'bn' ? 'শিরোনামহীন নোট' : 'Untitled Note'),
+        content: content,
+        category: category,
+        date: today,
+        timestamp: Date.now()
+      };
+      if (!Array.isArray(state.notes)) state.notes = [];
+      state.notes.unshift(newNote);
+      showToast(t('noteSaved'));
+    }
+
+    Store.saveNotes(state.notes);
+    closeNoteModal();
+    renderNotepad();
+  }
+
   function syncSettingsFields() {
     if (el.inputUserName) el.inputUserName.value = state.profile.name || 'Rieaz';
     if (el.chkReminder) el.chkReminder.checked = !!state.profile.notifyTx;
@@ -1052,12 +1370,13 @@
   function exportJsonBackup() {
     const payload = {
       app: "FinPulse",
-      version: "2.5.3",
+      version: "2.5.4",
       developer: "Rieaz",
       backupTimestamp: new Date().toISOString(),
       userProfile: state.profile,
       budgets: state.budgets,
-      transactions: state.transactions
+      transactions: state.transactions,
+      notes: state.notes
     };
 
     const jsonStr = JSON.stringify(payload, null, 2);
@@ -1086,6 +1405,10 @@
         if (Array.isArray(data.budgets)) {
           state.budgets = data.budgets;
           Store.saveBudgets(state.budgets);
+        }
+        if (Array.isArray(data.notes)) {
+          state.notes = data.notes;
+          Store.saveNotes(state.notes);
         }
         if (data.userProfile) {
           state.profile = { ...state.profile, ...data.userProfile };
@@ -1122,9 +1445,15 @@
       el.btnViewAllTx.addEventListener('click', () => switchTab('transactions'));
     }
 
-    // FAB Add transaction
+    // FAB Add button (adds note if in notepad, or transaction otherwise)
     if (el.fabAddTx) {
-      el.fabAddTx.addEventListener('click', openAddTxModal);
+      el.fabAddTx.addEventListener('click', () => {
+        if (state.activeTab === 'notepad') {
+          openAddNoteModal();
+        } else {
+          openAddTxModal();
+        }
+      });
     }
 
     // Modal Close
@@ -1172,6 +1501,46 @@
         renderTransactionsList();
       });
     });
+
+    // Notepad Event Listeners
+    if (el.btnOpenAddNote) {
+      el.btnOpenAddNote.addEventListener('click', openAddNoteModal);
+    }
+    if (el.btnCloseNoteModal) {
+      el.btnCloseNoteModal.addEventListener('click', closeNoteModal);
+    }
+    if (el.modalNote) {
+      el.modalNote.addEventListener('click', (e) => {
+        if (e.target === el.modalNote) closeNoteModal();
+      });
+    }
+    if (el.noteModalCatChips) {
+      el.noteModalCatChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+          const cat = chip.getAttribute('data-form-cat') || 'Finance';
+          state.selectedNoteModalCat = cat;
+          updateNoteModalCatChips();
+        });
+      });
+    }
+    if (el.btnSaveNote) {
+      el.btnSaveNote.addEventListener('click', handleSaveNote);
+    }
+    if (el.inputSearchNotes) {
+      el.inputSearchNotes.addEventListener('input', (e) => {
+        state.notesSearchQuery = e.target.value;
+        renderNotepad();
+      });
+    }
+    if (el.noteCatChips) {
+      el.noteCatChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+          const cat = chip.getAttribute('data-cat') || 'All';
+          state.notesCategoryFilter = cat;
+          renderNotepad();
+        });
+      });
+    }
 
     // Settings Profile Save
     if (el.btnSaveProfile) {
@@ -1227,9 +1596,11 @@
         if (pin && pin.trim().toUpperCase() === 'RESET') {
           state.transactions = [];
           state.budgets = JSON.parse(JSON.stringify(DEFAULT_BUDGETS));
+          state.notes = JSON.parse(JSON.stringify(DEFAULT_NOTES));
           state.profile = JSON.parse(JSON.stringify(DEFAULT_PROFILE));
           Store.saveTransactions(state.transactions);
           Store.saveBudgets(state.budgets);
+          Store.saveNotes(state.notes);
           Store.saveProfile(state.profile);
           renderAll();
           showToast(t('resetSuccess'));
@@ -1250,9 +1621,12 @@
         screenEl.classList.toggle('active', key === tab);
       }
     }
-    // Show FAB only on dashboard, reports, transactions
+    if (tab === 'notepad') {
+      renderNotepad();
+    }
+    // Show FAB on dashboard, reports, transactions, and notepad
     if (el.fabAddTx) {
-      el.fabAddTx.style.display = (tab === 'dashboard' || tab === 'reports' || tab === 'transactions') ? 'flex' : 'none';
+      el.fabAddTx.style.display = (tab === 'dashboard' || tab === 'reports' || tab === 'transactions' || tab === 'notepad') ? 'flex' : 'none';
     }
   }
 

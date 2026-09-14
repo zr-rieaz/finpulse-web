@@ -41,7 +41,9 @@ fun getNoteCategoryColor(category: String): Color {
 fun NotepadScreen(
     viewModel: FinViewModel,
     profile: UserProfile,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    openAddDialogTrigger: Boolean = false,
+    onAddDialogConsumed: () -> Unit = {}
 ) {
     val lang = profile.language
     val notesList by viewModel.filteredNotes.collectAsState()
@@ -52,6 +54,14 @@ fun NotepadScreen(
     var showAddEditDialog by remember { mutableStateOf(false) }
     var editingNote by remember { mutableStateOf<Note?>(null) }
     var noteToDelete by remember { mutableStateOf<Note?>(null) }
+
+    LaunchedEffect(openAddDialogTrigger) {
+        if (openAddDialogTrigger) {
+            editingNote = null
+            showAddEditDialog = true
+            onAddDialogConsumed()
+        }
+    }
 
     val categories = listOf("All", "Finance", "Budget", "Shopping", "Personal", "Notes")
 
@@ -207,26 +217,59 @@ fun NotepadScreen(
         // Notes List or Empty State
         if (notesList.isEmpty()) {
             item {
-                Box(
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 48.dp),
-                    contentAlignment = Alignment.Center
+                        .padding(vertical = 24.dp)
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         Icon(
                             imageVector = Icons.Default.EditNote,
                             contentDescription = null,
                             modifier = Modifier.size(56.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                            tint = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = Locales.getString("noNotesFound", lang),
-                            fontSize = 13.sp,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = if (lang == "bn") "আপনার আর্থিক পরিকল্পনা, বাজেট চিন্তা বা প্রয়োজনীয় তথ্য লিখে রাখুন।" else "Save your financial thoughts, plans, or checklists here.",
+                            fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = {
+                                editingNote = null
+                                showAddEditDialog = true
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            modifier = Modifier.testTag("empty_add_note_button")
+                        ) {
+                            Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = Locales.getString("addNote", lang),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
