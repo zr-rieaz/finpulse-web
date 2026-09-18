@@ -30,8 +30,9 @@ object Locales {
         "backupRestored" to Pair("Backup restored successfully!", "ব্যাকআপ সফলভাবে রিস্টোর হয়েছে!"),
         "searchPlaceholder" to Pair("Search transactions...", "লেনদেন রেকর্ড খুঁজুন..."),
         "factoryReset" to Pair("Factory Reset", "ফ্যাক্টরি রিসেট"),
-        "exportJson" to Pair("Export JSON Backup", "JSON ব্যাকআপ এক্সপোর্ট"),
-        "restoreFrom" to Pair("Restore from Backup", "ব্যাকআপ রিস্টোর করুন"),
+        "exportJson" to Pair("Backup", "ব্যাকআপ"),
+        "restoreFrom" to Pair("Restore", "রিস্টোর"),
+        "restoreJson" to Pair("Restore", "রিস্টোর"),
         "settings" to Pair("Settings", "সেটিংস"),
         "dashboard" to Pair("Dashboard Overviews", "ড্যাশবোর্ড ওভারভিউ"),
         "today" to Pair("Today", "আজ"),
@@ -53,11 +54,11 @@ object Locales {
         "yesClear" to Pair("Yes, Clear All", "হ্যাঁ, সব মুছুন"),
         "categories" to Pair("CATEGORIES", "ক্যাটাগরি"),
         "merchants" to Pair("MERCHANTS", "মার্চেন্ট"),
-        "profileSettings" to Pair("Profile Settings", "প্রোফাইল সেটিংস"),
+        "profileSettings" to Pair("General Settings", "জেনারেল সেটিংস"),
         "username" to Pair("Name", "ইউজার নেম"),
         "currency" to Pair("Currency Options", "কারেন্সি সেটিংস"),
         "language" to Pair("Language Settings", "ভাষা"),
-        "saveChanges" to Pair("Save Profile Changes", "প্রোফাইল তথ্য সংরক্ষণ"),
+        "saveChanges" to Pair("Save Change", "সেভ চেঞ্জ"),
         "notificationsSection" to Pair("Notifications & Alerts", "নোটিফিকেশন ও অ্যালার্ট"),
         "reminderToggle" to Pair("Transaction Reminders", "দৈনিক লেনদেন রিমাইন্ডার"),
         "alertsToggle" to Pair("Budget Limit Warnings (>80%)", "বাজেট লিমিট সতর্কবার্তা"),
@@ -72,7 +73,7 @@ object Locales {
         "yesRestore" to Pair("Yes, Restore", "হ্যাঁ, রিস্টোর করুন"),
         "update" to Pair("Update", "আপডেট"),
         "budgetCeilingUpdated" to Pair("Budget ceiling updated!", "বাজেটসীমা আপডেট হয়েছে!"),
-        "profileSavedSuccess" to Pair("Profile settings saved successfully!", "প্রোফাইল সেটিংস সংরক্ষিত হয়েছে!"),
+        "profileSavedSuccess" to Pair("Settings saved successfully!", "সেটিংস সংরক্ষিত হয়েছে!"),
         "cycleMonth" to Pair("Cycle Month", "হিসাব চক্র মাস"),
         "categoryBreakdown" to Pair("Category Breakdown", "ক্যাটাগরি বিস্তারিত"),
         "totalExpense" to Pair("Total Exp.", "মোট ব্যয়"),
@@ -108,7 +109,10 @@ object Locales {
         "chatOnWhatsApp" to Pair("WhatsApp: 01628403390", "হোয়াটসঅ্যাপ: ০১৬২৮৪০৩৩৯০"),
         "chatOnWhatsAppSub" to Pair("Tap to start direct chat", "ট্যাপ করলে সরাসরি চ্যাট চালু হবে"),
         "viewGitHub" to Pair("GitHub: https://github.com/zr-rieaz/", "গিটহাব: https://github.com/zr-rieaz/"),
-        "viewGitHubSub" to Pair("Tap to visit developer profile", "প্রোফাইল ভিজিট করতে ট্যাপ করুন")
+        "viewGitHubSub" to Pair("Tap to visit developer profile", "প্রোফাইল ভিজিট করতে ট্যাপ করুন"),
+        "remove" to Pair("Remove", "রিমুভ"),
+        "removeConfirm" to Pair("Are you sure you want to remove this transaction?", "আপনি কি নিশ্চিত যে এই লেনদেনটি মুছে ফেলতে চান?"),
+        "filterByDate" to Pair("Filter by date", "তারিখ দিয়ে খুঁজুন")
     )
 
     fun getString(key: String, languageCode: String): String {

@@ -548,6 +548,7 @@ fun TransactionRow(
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
             .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+            .clickable { onEdit() }
             .padding(10.dp)
             .testTag("transaction_row_${tx.id}")
     ) {
@@ -876,14 +877,24 @@ fun formatGooglePhotosDate(dateStr: String, lang: String): String {
         val currentYear = todayCal.get(java.util.Calendar.YEAR)
         val targetYear = targetCal.get(java.util.Calendar.YEAR)
         
-        val locale = if (lang == "bn") java.util.Locale("bn") else java.util.Locale.ENGLISH
-        
-        if (targetYear == currentYear) {
-            val sdfOutput = java.text.SimpleDateFormat("EEE, MMM d", locale)
-            return sdfOutput.format(date)
+        if (lang == "bn") {
+            val bnMonths = arrayOf("জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর")
+            val targetMonth = targetCal.get(java.util.Calendar.MONTH)
+            val targetDay = targetCal.get(java.util.Calendar.DAY_OF_MONTH)
+            val monthStr = bnMonths.getOrElse(targetMonth) { "" }
+            return if (targetYear == currentYear) {
+                "$targetDay $monthStr"
+            } else {
+                "$targetDay $monthStr, $targetYear"
+            }
         } else {
-            val sdfOutput = java.text.SimpleDateFormat("EEE, MMM d, yyyy", locale)
-            return sdfOutput.format(date)
+            return if (targetYear == currentYear) {
+                val sdfOutput = java.text.SimpleDateFormat("EEE, MMM d", java.util.Locale.US)
+                sdfOutput.format(date)
+            } else {
+                val sdfOutput = java.text.SimpleDateFormat("EEE, MMM d, yyyy", java.util.Locale.US)
+                sdfOutput.format(date)
+            }
         }
     } catch (e: Exception) {
         return dateStr
@@ -1103,23 +1114,76 @@ fun TransactionsScreen(
             }
         } else {
             grouped.forEach { (date, txs) ->
-                item(key = "header_$date") {
-                    Text(
-                        text = formatGooglePhotosDate(date, lang),
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 10.dp, bottom = 4.dp)
-                    )
-                }
-                items(txs, key = { it.id }) { tx ->
-                    TransactionRow(
-                        tx = tx,
-                        currencySymbol = curr,
-                        languageCode = lang,
-                        onDelete = { viewModel.deleteTransaction(tx.id) },
-                        onEdit = { onEditSelectedTransaction(tx) }
-                    )
+                item(key = "day_block_$date") {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                        ),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Day Header (Google Photos Style)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CalendarToday,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Text(
+                                        text = formatGooglePhotosDate(date, lang),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                val dayExpense = txs.filter { it.type == "expense" }.sumOf { it.amount }
+                                val dayIncome = txs.filter { it.type == "income" }.sumOf { it.amount }
+                                val daySummaryText = when {
+                                    dayExpense > 0 && dayIncome > 0 -> "-${String.format("%s%,.0f", curr, CurrencyHelper.convertFromBDT(dayExpense, curr))} | +${String.format("%s%,.0f", curr, CurrencyHelper.convertFromBDT(dayIncome, curr))}"
+                                    dayExpense > 0 -> "-${String.format("%s%,.0f", curr, CurrencyHelper.convertFromBDT(dayExpense, curr))}"
+                                    dayIncome > 0 -> "+${String.format("%s%,.0f", curr, CurrencyHelper.convertFromBDT(dayIncome, curr))}"
+                                    else -> "${txs.size} ${if (lang == "bn") "টি" else "items"}"
+                                }
+                                Text(
+                                    text = daySummaryText,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                                )
+                            }
+
+                            // Day's transactions
+                            txs.forEach { tx ->
+                                TransactionRow(
+                                    tx = tx,
+                                    currencySymbol = curr,
+                                    languageCode = lang,
+                                    onDelete = { viewModel.deleteTransaction(tx.id) },
+                                    onEdit = { onEditSelectedTransaction(tx) }
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -1436,12 +1500,8 @@ fun SettingsScreen(
     val budgetsList by viewModel.allBudgets.collectAsState()
 
     // Form settings variables
-    var userNameInput by remember { mutableStateOf(profile.name) }
     var selectedCurr by remember { mutableStateOf(curr) }
     var isEnglishSelected by remember { mutableStateOf(lang == "en") }
-
-    var alertTxRemi by remember { mutableStateOf(profile.notifyTransactions) }
-    var alertBudgWarn by remember { mutableStateOf(profile.notifyBudgetAlerts) }
 
     var factoryConfirmOpen by remember { mutableStateOf(false) }
     var resetInputText by remember { mutableStateOf("") }
@@ -1499,7 +1559,7 @@ fun SettingsScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Section: Profile
+        // Section: General Settings
         item {
             Card(
                 shape = RoundedCornerShape(16.dp),
@@ -1515,53 +1575,38 @@ fun SettingsScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Username Text
-                    Text(Locales.getString("username", lang), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    OutlinedTextField(
-                        value = userNameInput,
-                        onValueChange = { userNameInput = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
-                        maxLines = 1,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            focusedContainerColor = MaterialTheme.colorScheme.surface,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                            cursorColor = Color(0xFF4F46E5),
-                            focusedBorderColor = Color(0xFF4F46E5),
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Currency row switcher (supports 2 rows for 6 currencies)
+                    // Currency row switcher (one line with swipe capability)
                     Text(Locales.getString("currency", lang), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         val currencyList = listOf("৳", "$", "€", "£", "MYR", "SAR")
-                        currencyList.chunked(3).forEach { rowList ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        currencyList.forEach { c ->
+                            val isActive = selectedCurr == c
+                            val label = when(c) {
+                                "৳" -> "৳ BDT"
+                                "$" -> "$ USD"
+                                "€" -> "€ EUR"
+                                "£" -> "£ GBP"
+                                "MYR" -> "RM MYR"
+                                "SAR" -> "﷼ SAR"
+                                else -> c
+                            }
+                            Button(
+                                onClick = { selectedCurr = c },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = if (isActive) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                                ),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.height(38.dp),
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp)
                             ) {
-                                rowList.forEach { c ->
-                                    val isActive = selectedCurr == c
-                                    Button(
-                                        onClick = { selectedCurr = c },
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                                            contentColor = if (isActive) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                                        ),
-                                        shape = RoundedCornerShape(8.dp),
-                                        modifier = Modifier.weight(1f).height(38.dp),
-                                        contentPadding = PaddingValues(0.dp)
-                                    ) {
-                                        Text(c, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                    }
-                                }
+                                Text(label, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                             }
                         }
                     }
@@ -1604,11 +1649,11 @@ fun SettingsScreen(
                     Button(
                         onClick = {
                             viewModel.updateProfile(
-                                name = userNameInput,
+                                name = profile.name,
                                 currency = selectedCurr,
                                 language = if (isEnglishSelected) "en" else "bn",
-                                notifyTx = alertTxRemi,
-                                notifyBudget = alertBudgWarn
+                                notifyTx = profile.notifyTransactions,
+                                notifyBudget = profile.notifyBudgetAlerts
                             )
                             Toast.makeText(context, Locales.getString("profileSavedSuccess", if (isEnglishSelected) "en" else "bn"), Toast.LENGTH_SHORT).show()
                         },
@@ -1616,49 +1661,6 @@ fun SettingsScreen(
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(Locales.getString("saveChanges", lang), fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                    }
-                }
-            }
-        }
-
-        // Section: System Notifications alert
-        item {
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = Locales.getString("notificationsSection", lang),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(Locales.getString("reminderToggle", lang), fontSize = 12.sp)
-                        Switch(
-                            checked = alertTxRemi,
-                            onCheckedChange = { alertTxRemi = it }
-                        )
-                    }
-                    Divider(color = MaterialTheme.colorScheme.surfaceVariant, thickness = 1.dp, modifier = Modifier.padding(vertical = 4.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(Locales.getString("alertsToggle", lang), fontSize = 12.sp)
-                        Switch(
-                            checked = alertBudgWarn,
-                            onCheckedChange = { alertBudgWarn = it }
-                        )
                     }
                 }
             }
@@ -2107,6 +2109,7 @@ fun AddEditTransactionSheet(
     var selectedCategory by remember { mutableStateOf(editingTransaction?.category ?: "Food") }
     var dateSelected by remember { mutableStateOf(editingTransaction?.date ?: viewModel.getTodayString()) }
     var merchant by remember { mutableStateOf(editingTransaction?.merchant ?: "") }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
     val categoriesList = listOf("Food", "Rent", "Transport", "Health", "Education", "Entertainment", "Utility", "Shopping", "Other")
 
@@ -2343,36 +2346,27 @@ fun AddEditTransactionSheet(
             Spacer(modifier = Modifier.height(8.dp))
 
             // Action Trigger Buttons
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                OutlinedButton(
-                    onClick = onDismiss,
+            if (isEditMode && editingTransaction != null) {
+                // Edit mode: Update and Remove side-by-side per user request
+                Row(
                     modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp),
-                    shape = RoundedCornerShape(8.dp)
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text(Locales.getString("cancel", lang), fontWeight = FontWeight.Bold)
-                }
+                    Button(
+                        onClick = {
+                            val displayAmt = amountStr.toDoubleOrNull() ?: 0.0
+                            val amount = CurrencyHelper.convertToBDT(displayAmt, curr)
+                            if (title.isBlank()) {
+                                Toast.makeText(context, "Please enter a valid title", Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
+                            if (displayAmt <= 0.0) {
+                                Toast.makeText(context, "Please enter an amount greater than 0", Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
 
-                Button(
-                    onClick = {
-                        val displayAmt = amountStr.toDoubleOrNull() ?: 0.0
-                        val amount = CurrencyHelper.convertToBDT(displayAmt, curr)
-                        if (title.isBlank()) {
-                            Toast.makeText(context, "Please enter a valid title", Toast.LENGTH_SHORT).show()
-                            return@Button
-                        }
-                        if (displayAmt <= 0.0) {
-                            Toast.makeText(context, "Please enter an amount greater than 0", Toast.LENGTH_SHORT).show()
-                            return@Button
-                        }
-
-                        if (isEditMode && editingTransaction != null) {
                             viewModel.updateTransaction(
                                 id = editingTransaction.id,
                                 title = title,
@@ -2382,7 +2376,68 @@ fun AddEditTransactionSheet(
                                 date = dateSelected,
                                 merchant = merchant
                             )
-                        } else {
+                            keyboardController?.hide()
+                            onDismiss()
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                            .testTag("add_transaction_submit_button"),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(Locales.getString("update", lang), fontWeight = FontWeight.Bold)
+                    }
+
+                    Button(
+                        onClick = {
+                            showDeleteConfirmDialog = true
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.error
+                        ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                            .testTag("edit_transaction_remove_button"),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(Locales.getString("remove", lang), fontWeight = FontWeight.Bold)
+                    }
+                }
+            } else {
+                // Add mode: Cancel and Save
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(Locales.getString("cancel", lang), fontWeight = FontWeight.Bold)
+                    }
+
+                    Button(
+                        onClick = {
+                            val displayAmt = amountStr.toDoubleOrNull() ?: 0.0
+                            val amount = CurrencyHelper.convertToBDT(displayAmt, curr)
+                            if (title.isBlank()) {
+                                Toast.makeText(context, "Please enter a valid title", Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
+                            if (displayAmt <= 0.0) {
+                                Toast.makeText(context, "Please enter an amount greater than 0", Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
+
                             viewModel.addTransaction(
                                 title = title,
                                 amount = amount,
@@ -2391,19 +2446,58 @@ fun AddEditTransactionSheet(
                                 date = dateSelected,
                                 merchant = merchant
                             )
-                        }
-                        keyboardController?.hide()
-                        onDismiss()
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp)
-                        .testTag("add_transaction_submit_button"),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(Locales.getString("saveTransaction", lang), fontWeight = FontWeight.Bold)
+                            keyboardController?.hide()
+                            onDismiss()
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                            .testTag("add_transaction_submit_button"),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(Locales.getString("saveTransaction", lang), fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
+    }
+
+    if (showDeleteConfirmDialog && editingTransaction != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmDialog = false },
+            title = {
+                Text(
+                    text = Locales.getString("deleteTransactionTitle", lang),
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.error
+                )
+            },
+            text = {
+                Text(Locales.getString("removeConfirm", lang))
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteTransaction(editingTransaction.id)
+                        showDeleteConfirmDialog = false
+                        keyboardController?.hide()
+                        onDismiss()
+                        Toast.makeText(
+                            context,
+                            if (lang == "bn") "লেনদেনটি মুছে ফেলা হয়েছে" else "Transaction removed",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(Locales.getString("remove", lang), fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmDialog = false }) {
+                    Text(Locales.getString("cancel", lang))
+                }
+            }
+        )
     }
 }

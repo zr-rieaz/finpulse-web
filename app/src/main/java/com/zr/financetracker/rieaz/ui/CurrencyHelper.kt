@@ -7,9 +7,17 @@ object CurrencyHelper {
             "£" -> 165.38
             "€" -> 142.52
             "$" -> 122.78
-            "SAR" -> 32.70
-            "MYR" -> 30.48
+            "SAR", "﷼" -> 32.70
+            "MYR", "RM" -> 30.48
             else -> 1.0 // BDT "৳" or fallback
+        }
+    }
+
+    fun getSymbol(currency: String): String {
+        return when (currency) {
+            "MYR", "RM" -> "RM"
+            "SAR", "﷼" -> "SAR"
+            else -> currency
         }
     }
 

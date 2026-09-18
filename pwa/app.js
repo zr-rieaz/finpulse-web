@@ -36,19 +36,19 @@
       activeBudgets: "Active Category Budgets",
       budgetSub: "Keep your monthly spending within defined ceilings.",
       spentOf: "spent of",
-      profileSettings: "Profile Settings",
+      profileSettings: "General Settings",
       userName: "Name",
       currency: "Currency Options",
       language: "Language Settings",
-      saveProfile: "Save Profile Changes",
-      profileSaved: "Profile settings saved successfully!",
+      saveProfile: "Save Change",
+      profileSaved: "Settings saved successfully!",
       notifications: "Notifications & Alerts",
       reminders: "Transaction Reminders",
       budgetWarnings: "Budget Limit Warnings (>80%)",
       backupRestore: "Data Backup & Restore",
       backupDesc: "Download your data as a JSON file or restore from a previous backup.",
-      exportJson: "Export JSON",
-      restoreJson: "Restore JSON",
+      exportJson: "Backup",
+      restoreJson: "Restore",
       dangerZone: "Danger Zone",
       factoryResetBtn: "Factory Reset App",
       resetConfirmPrompt: "Type \"RESET\" to confirm factory reset:",
@@ -136,19 +136,19 @@
       activeBudgets: "চলতি ক্যাটাগরি বাজেট",
       budgetSub: "আপনার মাসিক খরচ বাজেট সীমার মধ্যে রাখুন।",
       spentOf: "ব্যয় হয়েছে / মোট",
-      profileSettings: "প্রোফাইল সেটিংস",
+      profileSettings: "জেনারেল সেটিংস",
       userName: "ইউজার নেম",
       currency: "কারেন্সি সেটিংস",
       language: "ভাষা সেটিংস",
-      saveProfile: "প্রোফাইল তথ্য সংরক্ষণ",
-      profileSaved: "প্রোফাইল তথ্য সফলভাবে সংরক্ষিত হয়েছে!",
+      saveProfile: "সেভ চেঞ্জ",
+      profileSaved: "সেটিংস সংরক্ষিত হয়েছে!",
       notifications: "নোটিফিকেশন ও অ্যালার্ট",
       reminders: "দৈনিক লেনদেন রিমাইন্ডার",
       budgetWarnings: "বাজেট লিমিট সতর্কবার্তা (>৮০%)",
       backupRestore: "ডেটা ব্যাকআপ ও রিস্টোর",
       backupDesc: "আপনার সকল ডেটা ব্যাকআপ JSON ফাইল হিসেবে সেভ করুন বা রিস্টোর করুন।",
-      exportJson: "JSON এক্সপোর্ট",
-      restoreJson: "JSON রিস্টোর",
+      exportJson: "ব্যাকআপ",
+      restoreJson: "রিস্টোর",
       dangerZone: "ঝুঁকিপূর্ণ সেটিংস",
       factoryResetBtn: "ফ্যাক্টরি রিসেট করুন",
       resetConfirmPrompt: "ফ্যাক্টরি রিসেট নিশ্চিত করতে \"RESET\" লিখুন:",
@@ -281,6 +281,43 @@
     return d.toISOString().split('T')[0];
   }
 
+  function formatGooglePhotosDate(dateStr) {
+    if (!dateStr) return '';
+    try {
+      const parts = dateStr.split('-');
+      if (parts.length !== 3) return dateStr;
+      const targetDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const targetZero = new Date(targetDate);
+      targetZero.setHours(0, 0, 0, 0);
+
+      const diffMs = today.getTime() - targetZero.getTime();
+      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+      const isBn = state.profile && state.profile.language === 'bn';
+      if (diffDays === 0) return isBn ? 'আজ' : 'Today';
+      if (diffDays === 1) return isBn ? 'গতকাল' : 'Yesterday';
+
+      const currentYear = today.getFullYear();
+      const targetYear = targetDate.getFullYear();
+      const day = targetDate.getDate();
+      const monthIdx = targetDate.getMonth();
+
+      if (isBn) {
+        const bnMonths = ["জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"];
+        const monthName = bnMonths[monthIdx] || '';
+        return targetYear === currentYear ? `${day} ${monthName}` : `${day} ${monthName}, ${targetYear}`;
+      } else {
+        const enMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const monthName = enMonths[monthIdx] || '';
+        return targetYear === currentYear ? `${monthName} ${day}` : `${monthName} ${day}, ${targetYear}`;
+      }
+    } catch (e) {
+      return dateStr;
+    }
+  }
+
   // --- 3. STORAGE ADAPTER ---
   const STORAGE_KEYS = {
     TRANSACTIONS: 'finpulse_transactions_v2',
@@ -386,6 +423,8 @@
     activeTab: 'dashboard',
     txFilter: 'all',
     txSearchQuery: '',
+    txSearchDate: null,
+    expandedDashboardCategory: null,
     editingTxId: null,
     txModalType: 'expense',
     notesCategoryFilter: 'All',
@@ -438,6 +477,10 @@
 
     // Transactions fields
     inputSearchTx: document.getElementById('input-search-tx'),
+    inputSearchTxDate: document.getElementById('input-search-tx-date'),
+    txDateFilterChip: document.getElementById('tx-date-filter-chip'),
+    txDateChipText: document.getElementById('tx-date-chip-text'),
+    btnClearDateFilter: document.getElementById('btn-clear-date-filter'),
     filterPills: document.querySelectorAll('.filter-pills .filter-pill'),
     fullTxList: document.getElementById('full-transactions-list'),
 
@@ -490,6 +533,8 @@
     txInputDate: document.getElementById('tx-input-date'),
     btnSaveTx: document.getElementById('btn-save-tx'),
     lblBtnSaveTx: document.getElementById('lbl-btn-save-tx'),
+    btnDeleteTx: document.getElementById('btn-delete-tx'),
+    lblBtnDeleteTx: document.getElementById('lbl-btn-delete-tx'),
 
     // PWA Install Popup
     installPopup: document.getElementById('pwa-install-popup'),
@@ -532,10 +577,39 @@
     return dict.categories?.[catName] || catName;
   }
 
+  const CURRENCY_RATES = {
+    "৳": 1.0,
+    "BDT": 1.0,
+    "$": 122.78,
+    "USD": 122.78,
+    "€": 142.52,
+    "EUR": 142.52,
+    "£": 165.38,
+    "GBP": 165.38,
+    "MYR": 30.48,
+    "RM": 30.48,
+    "SAR": 32.70,
+    "﷼": 32.70
+  };
+
+  function getCurrencyRateToBDT(curr) {
+    return CURRENCY_RATES[curr] || 1.0;
+  }
+
+  function getCurrencySymbol(curr) {
+    if (curr === 'MYR' || curr === 'RM') return 'RM';
+    if (curr === 'SAR' || curr === '﷼') return 'SAR';
+    return curr || '৳';
+  }
+
   function formatMoney(amount) {
     const num = Number(amount) || 0;
-    const formatted = num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    return `${state.profile.currency} ${formatted}`;
+    const curr = (state.profile && state.profile.currency) || '৳';
+    const rate = getCurrencyRateToBDT(curr);
+    const converted = num / rate;
+    const symbol = getCurrencySymbol(curr);
+    const formatted = converted.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return `${symbol} ${formatted}`;
   }
 
   function showToast(msg, duration = 2500) {
@@ -740,9 +814,9 @@
     if (el.valSavingsPct) el.valSavingsPct.textContent = `${t('savingsPct')}: ${stats.savingsPct}%`;
     if (el.valSpendPct) el.valSpendPct.textContent = `${t('spendPct')}: ${stats.spendPct}%`;
 
-    // Category progress bars
+    // Category progress bars (expandable on click per user request)
     const catTotals = getCategoryTotals();
-    const sortedCats = Object.entries(catTotals).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const sortedCats = Object.entries(catTotals).sort((a, b) => b[1] - a[1]).slice(0, 6);
     const maxSpent = sortedCats.length > 0 ? sortedCats[0][1] : 1;
 
     if (el.dashboardCatBars) {
@@ -753,29 +827,67 @@
           const pct = Math.min(100, Math.round((amount / maxSpent) * 100));
           const color = CATEGORY_COLORS[cat] || '#6366f1';
           const icon = CATEGORY_ICONS[cat] || '🏷️';
+          const isExpanded = state.expandedDashboardCategory === cat;
+
+          let detailsHtml = '';
+          if (isExpanded) {
+            const catTxs = state.transactions
+              .filter(t => t.type === 'expense' && t.category === cat && t.month === state.selectedMonth)
+              .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            if (catTxs.length === 0) {
+              detailsHtml = `
+                <div style="margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; font-size: 11px; color: var(--text-muted); text-align: center;">
+                  ${state.profile.language === 'bn' ? 'এই ক্যাটাগরিতে কোনো খরচ নেই' : 'No expenses in this category'}
+                </div>
+              `;
+            } else {
+              const listItems = catTxs.map(tx => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 11px;">
+                  <div>
+                    <div style="font-weight: 600; color: var(--text);">${escapeHtml(tx.merchant || tx.title)}</div>
+                    <div style="color: var(--text-muted); font-size: 10px;">${tx.date}</div>
+                  </div>
+                  <div style="font-weight: 700; color: #ef4444;">-${formatMoney(tx.amount)}</div>
+                </div>
+              `).join('');
+              detailsHtml = `
+                <div style="margin-top: 10px; padding: 8px 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px;">
+                  <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase;">
+                    ${state.profile.language === 'bn' ? 'খরচের বিবরণ' : 'Expense Details'} (${catTxs.length})
+                  </div>
+                  ${listItems}
+                </div>
+              `;
+            }
+          }
+
           return `
-            <div class="cat-bar-item">
-              <div class="cat-bar-meta">
-                <span>${icon} ${translateCat(cat)}</span>
-                <span>${formatMoney(amount)}</span>
+            <div class="cat-bar-item" data-cat="${cat}" style="cursor: pointer; padding: 10px; border-radius: 10px; transition: background 0.2s; border: 1px solid ${isExpanded ? 'var(--primary)' : 'transparent'}; background: ${isExpanded ? 'rgba(99, 102, 241, 0.05)' : 'transparent'};">
+              <div class="cat-bar-meta" style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="display: flex; align-items: center; gap: 6px; font-weight: 600;">
+                  ${icon} ${translateCat(cat)}
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transform: ${isExpanded ? 'rotate(180deg)' : 'rotate(0)'}; transition: transform 0.2s; color: var(--text-muted);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </span>
+                <span style="font-weight: 700; color: #ef4444;">-${formatMoney(amount)}</span>
               </div>
-              <div class="cat-progress-track">
+              <div class="cat-progress-track" style="margin-top: 6px;">
                 <div class="cat-progress-fill" style="width: ${pct}%; background-color: ${color};"></div>
               </div>
+              ${detailsHtml}
             </div>
           `;
         }).join('');
-      }
-    }
 
-    // Recent Transactions
-    const recent = [...state.transactions].reverse().slice(0, 5);
-    if (el.dashboardRecentTxs) {
-      if (recent.length === 0) {
-        el.dashboardRecentTxs.innerHTML = `<div class="empty-state">${t('noTransactions')}</div>`;
-      } else {
-        el.dashboardRecentTxs.innerHTML = recent.map(tx => renderTxItemHtml(tx)).join('');
-        attachTxClickHandlers(el.dashboardRecentTxs);
+        el.dashboardCatBars.querySelectorAll('.cat-bar-item').forEach(item => {
+          item.addEventListener('click', (e) => {
+            if (e.target.closest('.cat-bar-item') === item) {
+              const cat = item.getAttribute('data-cat');
+              state.expandedDashboardCategory = (state.expandedDashboardCategory === cat) ? null : cat;
+              renderDashboard();
+            }
+          });
+        });
       }
     }
 
@@ -953,6 +1065,11 @@
       filtered = filtered.filter(tx => tx.type === state.txFilter);
     }
 
+    // Filter by date picker
+    if (state.txSearchDate) {
+      filtered = filtered.filter(tx => tx.date === state.txSearchDate);
+    }
+
     // Filter search
     if (query) {
       filtered = filtered.filter(tx => {
@@ -967,6 +1084,16 @@
     // Sort descending by date
     filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
 
+    // Update Date Chip display
+    if (el.txDateFilterChip && el.txDateChipText) {
+      if (state.txSearchDate) {
+        el.txDateFilterChip.style.display = 'flex';
+        el.txDateChipText.textContent = `${state.profile.language === 'bn' ? 'তারিখ: ' : 'Date: '} ${formatGooglePhotosDate(state.txSearchDate)}`;
+      } else {
+        el.txDateFilterChip.style.display = 'none';
+      }
+    }
+
     if (filtered.length === 0) {
       el.fullTxList.innerHTML = `
         <div class="empty-state">
@@ -975,7 +1102,49 @@
         </div>
       `;
     } else {
-      el.fullTxList.innerHTML = filtered.map(tx => renderTxItemHtml(tx)).join('');
+      // Group by date for Google Photos style day blocks
+      const grouped = {};
+      filtered.forEach(tx => {
+        if (!grouped[tx.date]) grouped[tx.date] = [];
+        grouped[tx.date].push(tx);
+      });
+
+      const dates = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
+
+      el.fullTxList.innerHTML = dates.map(date => {
+        const txs = grouped[date];
+        const dayExpense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+        const dayIncome = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+
+        let daySummaryText = '';
+        if (dayExpense > 0 && dayIncome > 0) {
+          daySummaryText = `-${formatMoney(dayExpense)} | +${formatMoney(dayIncome)}`;
+        } else if (dayExpense > 0) {
+          daySummaryText = `-${formatMoney(dayExpense)}`;
+        } else if (dayIncome > 0) {
+          daySummaryText = `+${formatMoney(dayIncome)}`;
+        } else {
+          daySummaryText = `${txs.length} ${state.profile.language === 'bn' ? 'টি' : 'items'}`;
+        }
+
+        const itemsHtml = txs.map(tx => renderTxItemHtml(tx)).join('');
+
+        return `
+          <div class="date-group-card" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 12px; margin-bottom: 12px;">
+            <div class="date-group-header" style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); margin-bottom: 8px;">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--primary);"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                <span style="font-weight: 700; font-size: 13px; color: var(--primary);">${formatGooglePhotosDate(date)}</span>
+              </div>
+              <span style="font-size: 11px; font-weight: 600; color: var(--text-muted);">${daySummaryText}</span>
+            </div>
+            <div class="date-group-items" style="display: flex; flex-direction: column; gap: 6px;">
+              ${itemsHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+
       attachTxClickHandlers(el.fullTxList);
     }
   }
@@ -1263,9 +1432,12 @@
     updateModalTypeSegment();
     if (el.lblModalTitle) el.lblModalTitle.textContent = t('addTxTitle');
     if (el.lblBtnSaveTx) el.lblBtnSaveTx.textContent = t('saveTx');
+    if (el.btnDeleteTx) el.btnDeleteTx.style.display = 'none';
 
     el.txInputTitle.value = '';
     el.txInputAmount.value = '';
+    const curr = (state.profile && state.profile.currency) || '৳';
+    el.txInputAmount.placeholder = `0.00 (${getCurrencySymbol(curr)})`;
     el.txInputCategory.value = 'Food';
     el.txInputMerchant.value = '';
     el.txInputDate.value = getFormattedDate(0);
@@ -1282,9 +1454,19 @@
     updateModalTypeSegment();
     if (el.lblModalTitle) el.lblModalTitle.textContent = t('editTxTitle');
     if (el.lblBtnSaveTx) el.lblBtnSaveTx.textContent = t('updateTx');
+    if (el.btnDeleteTx) {
+      el.btnDeleteTx.style.display = 'block';
+      if (el.lblBtnDeleteTx) {
+        el.lblBtnDeleteTx.textContent = state.profile.language === 'bn' ? 'রিমুভ' : 'Remove';
+      }
+    }
 
     el.txInputTitle.value = tx.title;
-    el.txInputAmount.value = tx.amount;
+    const curr = (state.profile && state.profile.currency) || '৳';
+    const rate = getCurrencyRateToBDT(curr);
+    const convertedAmount = Math.round((tx.amount / rate) * 100) / 100;
+    el.txInputAmount.value = convertedAmount;
+    el.txInputAmount.placeholder = `0.00 (${getCurrencySymbol(curr)})`;
     el.txInputCategory.value = tx.category;
     el.txInputMerchant.value = tx.merchant || '';
     el.txInputDate.value = tx.date;
@@ -1328,6 +1510,10 @@
     const month = MONTH_NAMES[txDate.getMonth()] || state.selectedMonth;
     const year = txDate.getFullYear() || state.selectedYear;
 
+    const curr = (state.profile && state.profile.currency) || '৳';
+    const rate = getCurrencyRateToBDT(curr);
+    const amountInBDT = Math.round(amount * rate * 100) / 100;
+
     if (state.editingTxId) {
       // Edit
       const idx = state.transactions.findIndex(t => t.id === state.editingTxId);
@@ -1335,7 +1521,7 @@
         state.transactions[idx] = {
           ...state.transactions[idx],
           title,
-          amount,
+          amount: amountInBDT,
           type: state.txModalType,
           category,
           merchant,
@@ -1349,7 +1535,7 @@
       const newTx = {
         id: 'tx-' + Date.now(),
         title,
-        amount,
+        amount: amountInBDT,
         type: state.txModalType,
         category,
         merchant,
@@ -1485,10 +1671,41 @@
       el.btnSaveTx.addEventListener('click', saveTransactionFromModal);
     }
 
+    // Delete Tx button with confirmation
+    if (el.btnDeleteTx) {
+      el.btnDeleteTx.addEventListener('click', () => {
+        if (!state.editingTxId) return;
+        const isBn = state.profile.language === 'bn';
+        const confirmMsg = isBn ? 'আপনি কি নিশ্চিত যে এই লেনদেনটি মুছে ফেলতে চান?' : 'Are you sure you want to remove this transaction?';
+        if (confirm(confirmMsg)) {
+          state.transactions = state.transactions.filter(t => t.id !== state.editingTxId);
+          Store.saveTransactions(state.transactions);
+          closeModal();
+          updateUI();
+          showToast(isBn ? 'লেনদেনটি মুছে ফেলা হয়েছে' : 'Transaction removed');
+        }
+      });
+    }
+
     // Transaction Search & Filter
     if (el.inputSearchTx) {
       el.inputSearchTx.addEventListener('input', (e) => {
         state.txSearchQuery = e.target.value;
+        renderTransactionsList();
+      });
+    }
+
+    // Calendar search date picker
+    if (el.inputSearchTxDate) {
+      el.inputSearchTxDate.addEventListener('change', (e) => {
+        state.txSearchDate = e.target.value || null;
+        renderTransactionsList();
+      });
+    }
+    if (el.btnClearDateFilter) {
+      el.btnClearDateFilter.addEventListener('click', () => {
+        state.txSearchDate = null;
+        if (el.inputSearchTxDate) el.inputSearchTxDate.value = '';
         renderTransactionsList();
       });
     }
@@ -1545,10 +1762,11 @@
     // Settings Profile Save
     if (el.btnSaveProfile) {
       el.btnSaveProfile.addEventListener('click', () => {
-        state.profile.name = el.inputUserName.value.trim() || 'Rieaz';
-        state.profile.notifyTx = el.chkReminder.checked;
-        state.profile.notifyBudget = el.chkBudgetAlerts.checked;
+        if (el.inputUserName) state.profile.name = el.inputUserName.value.trim() || 'Rieaz';
+        if (el.chkReminder) state.profile.notifyTx = el.chkReminder.checked;
+        if (el.chkBudgetAlerts) state.profile.notifyBudget = el.chkBudgetAlerts.checked;
         Store.saveProfile(state.profile);
+        renderAll();
         showToast(t('profileSaved'));
       });
     }
@@ -1561,6 +1779,8 @@
         state.profile.currency = btn.getAttribute('data-curr');
         Store.saveProfile(state.profile);
         renderAll();
+        const isBn = state.profile.language === 'bn';
+        showToast(isBn ? `কারেন্সি পরিবর্তন: ${btn.textContent.trim()}` : `Currency changed: ${btn.textContent.trim()}`);
       });
     });
 

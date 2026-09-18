@@ -295,6 +295,8 @@ class FinViewModel(application: Application) : AndroidViewModel(application) {
             } else {
                 tx.title.contains(query, ignoreCase = true) ||
                         (tx.merchant?.contains(query, ignoreCase = true) ?: false) ||
+                        tx.category.contains(query, ignoreCase = true) ||
+                        tx.date.contains(query, ignoreCase = true) ||
                         tx.amount.toString().contains(query)
             }
             matchesType && matchesQuery
